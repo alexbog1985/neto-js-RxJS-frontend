@@ -1,3 +1,4 @@
+import '../css/Polling.css';
 import testData from './testData.json';
 
 export default class Polling {
