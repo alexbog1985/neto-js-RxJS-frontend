@@ -1,5 +1,9 @@
+import { ajax } from 'rxjs/ajax';
+import { map, catchError, of } from 'rxjs';
+import { interval } from 'rxjs';
+import { startWith, switchMap } from 'rxjs/operators';
+
 import '../css/Polling.css';
-import testData from './testData.json';
 
 export default class Polling {
   constructor(root) {
@@ -8,10 +12,37 @@ export default class Polling {
     this.messagesElement = null;
     this.messages = [];
     this.cards = [];
+
+    this.apiUrl = 'http://localhost:3000/messages/unread';
   }
 
   init() {
     this.render();
+
+    this.getFromApi().subscribe((data) => {
+      this.messages = data;
+      this.render();
+    });
+  }
+
+  getFromApi() {
+    return ajax.getJSON(this.apiUrl).pipe(
+      map((data) => data.messages || []),
+      catchError((error) => {
+        console.error('error: ', error);
+        return of([]);
+      }),
+    );
+  }
+
+  startPolling() {
+    this.polling$ = interval(5000).pipe(
+      startWith(0),
+      switchMap(() => this.getFromApi())
+    ).subscribe(messages => {
+      this.messages = messages;
+      this.render();
+    });
   }
 
   render() {
@@ -37,8 +68,6 @@ export default class Polling {
   }
 
   renderCard() {
-    this.getMessages();
-
     this.messages.forEach((message) => {
       const card = document.createElement('li');
       card.className = 'message-card';
@@ -59,10 +88,5 @@ export default class Polling {
       card.append(cardFrom, cardSubj, cardRecieved);
       this.cards.push(card);
     });
-  }
-
-  getMessages() {
-    const data = testData;
-    this.messages = data.messages;
   }
 }
