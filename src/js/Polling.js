@@ -5,7 +5,7 @@ import { startWith, switchMap } from 'rxjs/operators';
 import '../css/Polling.css';
 
 export default class Polling {
-  constructor(root, apiUrl = 'http://localhost:3000/messages/unread') {
+  constructor(root, apiUrl = 'https://neto-js-rx-js-backend.vercel.app/messages/unread') {
     this.root = root;
     this.apiUrl = apiUrl;
 
@@ -34,7 +34,7 @@ export default class Polling {
     return ajax.getJSON(this.apiUrl).pipe(
       map((data) => data.messages),
       catchError((error) => {
-        console.error('Request failed', error);
+        console.error('Ошибка при получении сообщений:', error);
         return of([]);
       }),
     );
@@ -42,7 +42,7 @@ export default class Polling {
 
   updateMessages(newMessages) {
     if (this.messages !== newMessages) {
-      this.messages = newMessages;
+      this.messages = [...newMessages, ...this.messages];
       this.renderMessages();
     }
   }
@@ -69,9 +69,9 @@ export default class Polling {
 
   renderMessages() {
     if (!this.messagesList) return;
-    this.messagesList.innerHTML = '';
 
     const fragment = document.createDocumentFragment();
+    this.messagesList.innerHTML = '';
 
     this.messages.forEach((message) => {
       const card = this.createMessageCard(message);
@@ -95,11 +95,23 @@ export default class Polling {
     cardRecieved.className = 'message-card-recieved';
 
     cardFrom.textContent = message.from;
-    cardSubj.textContent = message.subject;
-    cardRecieved.textContent = message.recieved;
+    cardSubj.textContent = message.subject.length > 15 ? `${message.subject.substring(0, 15)}...` : message.subject;
+    cardRecieved.textContent = this.formatDate(message.recieved);
 
     card.append(cardFrom, cardSubj, cardRecieved);
 
     return card;
+  }
+
+  formatDate(timestamp) {
+    const date = new Date(timestamp);
+
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${hours}:${minutes} ${day}.${month}.${year}`;
   }
 }
